@@ -15,6 +15,7 @@
     <session id="908134181">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
+          <entry key="project.closed" value="1" />
           <entry key="project.open.time.5" value="1" />
           <entry key="project.opened" value="1" />
         </counts>
@@ -35,6 +36,10 @@
           <entry key="Python" value="3" />
         </counts>
       </usages-collector>
+      <usages-collector id="statistics.file.types.edit" />
+      <usages-collector id="statistics.vcs.git.usages" />
+      <usages-collector id="statistics.file.extensions.edit" />
+      <usages-collector id="statistics.js.language.service.starts" />
     </session>
   </component>
   <component name="FileEditorManager">
@@ -70,20 +75,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/trimap.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="159">
               <caret line="128" selection-start-line="128" selection-end-line="128" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/trimap.html">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2680">
-              <caret line="27" lean-forward="true" selection-start-line="27" selection-end-line="27" />
             </state>
           </provider>
         </entry>
@@ -120,8 +116,9 @@
     <detection-done>true</detection-done>
     <sorting>DEFINITION_ORDER</sorting>
   </component>
-  <component name="ProjectFrameBounds" fullScreen="true">
-    <option name="y" value="22" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="22" />
+    <option name="y" value="83" />
     <option name="width" value="1440" />
     <option name="height" value="878" />
   </component>
@@ -163,7 +160,10 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="JavaScript Debug.trimap.html">
+  <component name="RunManager" selected="JavaScript Debug.index.html">
+    <configuration name="index.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/index.html">
+      <method v="2" />
+    </configuration>
     <configuration name="trimap.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/trimap.html">
       <method v="2" />
     </configuration>
@@ -196,9 +196,11 @@
       <item itemvalue="Python.preprocess" />
       <item itemvalue="JavaScript Debug.trimap.html" />
       <item itemvalue="JavaScript Debug.tsne.html" />
+      <item itemvalue="JavaScript Debug.index.html" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JavaScript Debug.index.html" />
         <item itemvalue="JavaScript Debug.trimap.html" />
         <item itemvalue="JavaScript Debug.tsne.html" />
         <item itemvalue="Python.preprocess" />
@@ -233,7 +235,7 @@
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32891566" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.32891566" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -290,13 +292,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/trimap.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="159">
-          <caret line="128" selection-start-line="128" selection-end-line="128" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tsne.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="330">
@@ -308,6 +303,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-2680">
           <caret line="27" lean-forward="true" selection-start-line="27" selection-end-line="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/trimap.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="159">
+          <caret line="128" selection-start-line="128" selection-end-line="128" />
         </state>
       </provider>
     </entry>

@@ -227,7 +227,10 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
 
     // return pointer to current solution
     getSolution: function() {
-      return this.Y.tolist();
+      return {"Y": this.Y.tolist(),
+          "loss": this.cost
+
+    };
     },
 
 
