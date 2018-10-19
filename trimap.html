@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>LDA-cluster visualization</title>
+
+<!-- JavaScript Libraries //-->
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="trimap.js"></script>
+<script src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/nicolaspanel/numjs@0.15.1/dist/numjs.min.js"></script>
+
+
+
+
+
+<!-- CSS Style //-->
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,900|Source+Code+Pro:300" rel="stylesheet" type="text/css">
+<style>
+body {
+    font-family: 'Source Sans Pro', sans-serif;
+    font-weight: 300;
+}
+
+b {
+    font-weight: 900;
+}
+
+
+
+.node {
+    stroke: #ffffff;
+    stroke-weight: 1px;
+}
+
+
+.legend {
+		font-size: 16px;
+		font-weight: bold;
+		text-anchor: start;
+}
+
+
+</style>
+
+<script>
+
+
+
+
+var width  = 500;
+var height = 450;
+var margin = 20;
+var pad = margin / 2;
+var color = d3.scaleOrdinal(d3.schemeCategory10);
+// Generates a tooltip for a SVG circle element based on its ID
+
+
+function drawGraph(graph) {
+    svg1 = d3.select("#force").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+    // draw plot background
+    svg1.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "#eeeeee");
+    // create an area within svg for plotting graph
+    var plot = svg1.append("g")
+        .attr("id", "plot1")
+        .attr("transform", "translate(" + pad + ", " + pad + ")");
+
+
+    svg2 = d3.select("#force").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+    // draw plot background
+    svg2.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "#eeeeee");
+    // create an area within svg for plotting graph
+    var plot = svg2.append("g")
+        .attr("id", "plot2")
+        .attr("transform", "translate(" + pad + ", " + pad + ")");
+
+    svg1.append("text")
+            .attr("x", margin)
+            .attr("y", height - margin)
+            .attr("class", "legend")
+            .attr("id","text1")
+            .style("fill", "steelblue")
+            .text("wait for the cluster to stabilize, it takes a few seconds");
+
+    drawNodes(graph.nodes);
+
+
+
+// initialize data. Here we have 3 points and some example pairwise dissimilarities
+
+
+
+    var dists = calDists(graph.nodes);
+
+
+    var tri_matrix = graph.triplets
+
+    var weight_matrix = graph.weights
+
+
+
+    var ones = Array(5).fill(0);
+
+
+
+
+
+
+    var simulation = trimapSimulation(graph.nodes,dists,tri_matrix,weight_matrix)
+
+
+    simulation.on("tick", function() {
+
+        d3.selectAll(".image1")
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+
+        d3.selectAll(".image2")
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; });
+
+    });
+
+        simulation.on("end", function() {
+        });
+}
+
+
+
+function calDists(nodes){
+    var dists = []
+    var n = 0
+
+    k = d3.selectAll(".image1")
+        .each(function(d) {
+            n = n+1
+            dists.push(d.pixel)
+        })
+    return dists
+}
+
+
+// Draws nodes on plot
+function drawNodes(nodes) {
+    // used to assign nodes color by group
+    var color = d3.scaleOrdinal(d3.schemeCategory10)
+                .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    // https://github.com/mbostock/d3/wiki/Force-Layout#wiki-nodes
+    d3.select("#plot1").selectAll(".node")
+        .data(nodes)
+        .enter()
+        .append("svg:g")
+        .append("circle")
+        .attr("class", "image1")
+        .attr("id", function(d, i) { return d.id; })
+        .attr("cx", function(d, i) { return d.x; })
+        .attr("cy", function(d, i) { return d.y; })
+        .attr("r",  function(d, i) { return 6; })
+        .attr("fill", function(d) { return color(d.label); })
+
+
+    // https://github.com/mbostock/d3/wiki/Force-Layout#wiki-nodes
+    d3.select("#plot2").selectAll(".node")
+        .data(nodes)
+        .enter()
+        .append("svg:g")
+        .append("image")
+        .attr("xlink:href", function(d,i){return d.img})
+        .attr("class", "image2")
+        .attr("id", function(d, i) { return d.id; })
+        .attr("x", function(d, i) { return d.x; })
+        .attr("y", function(d, i) { return d.y; })
+        .attr("width", 16)
+        .attr("height", 16)
+}
+
+
+function trimapSimulation(nodes,dists,a,b) {
+  var initialRadius = 10,
+    initialAngle = Math.PI * (3 - Math.sqrt(5));
+
+  var simulation,
+      iter = 0,
+      alpha = 1,
+      alphaMin = 0.001,
+      alphaDecay = 1 - Math.pow(alphaMin, 1 / 300),
+      alphaTarget = 0,
+      velocityDecay = 0.6,
+      forces = d3.map(),
+      stepper = d3.timer(step),
+      event = d3.dispatch("tick", "end");
+
+  if (nodes == null) nodes = [];
+  if (dists == null) dists = [];
+
+  var opt = {}
+  opt.epsilon = 10; // epsilon is learning rate (10 = default)
+  opt.perplexity = 60; // roughly how many neighbors each point influences (30 = default)
+  opt.dim = 2; // dimensionality of the embedding (2 = default)
+
+  var trimap = new trimapjs.triMAP(opt); // create a tSNE instance
+
+  // initialize data. Here we have 3 points and some example pairwise dissimilarities
+    trimap.initDataRaw(dists,a,b);
+
+  function step() {
+    trimap.step(); // every time you call this, solution gets better
+    var  Y = trimap.getSolution();
+    tick(Y);
+    iter = iter +1;
+
+    d3.selectAll("#text1").remove()
+
+          svg1.append("text")
+             .attr("x", margin)
+             .attr("y", height - margin)
+             .attr("class", "legend")
+             .attr("id","text1")
+             .style("fill", "steelblue")
+             .text(function() {
+                  return "trimap,perplexity:"+opt.perplexity+",step:"+iter;
+          })
+             ;
+    event.call("tick", simulation);
+    if (iter > 999) {
+      stepper.stop();
+      event.call("end", simulation);
+    }
+  }
+
+  function tick(Y) {
+      var i, node;
+      var n = Y.length
+      alpha += (alphaTarget - alpha) * alphaDecay;
+
+      for (i = 0; i < n; ++i) {
+          node = nodes[i];
+          dx = Y[i][0] * 2;
+          dy = Y[i][1] * 2;
+          node.x = width / 2+ dx;
+          node.y = height / 2+ dy;
+    }
+  }
+
+  function initializeNodes() {
+    for (var i = 0, n = nodes.length, node; i < n; ++i) {
+      node = nodes[i], node.index = i;
+      if (isNaN(node.x) || isNaN(node.y)) {
+        node.x = width / 2;
+        node.y = height / 2;
+      }
+    }
+  }
+
+
+  initializeNodes();
+
+  return simulation = {
+    tick: tick,
+
+    restart: function() {
+      return stepper.restart(step), simulation;
+    },
+
+    stop: function() {
+      return stepper.stop(), simulation;
+    },
+
+    nodes: function(_) {
+      return arguments.length ? (nodes = _, initializeNodes(), forces.each(initializeForce), simulation) : nodes;
+    },
+
+    on: function(name, _) {
+      return arguments.length > 1 ? (event.on(name, _), simulation) : event.on(name);
+    }
+  };
+}
+
+
+
+</script>
+</head>
+
+<body>
+<div align="center" id="force"></div>
+
+<script>
+d3.json("dists.json", drawGraph);
+</script>
+</body>
+</html>
