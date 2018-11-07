@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b3689402-fbd4-4d05-8c49-0bb74b8ebe67" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/trimap3d.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tsne3d.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tsne.html" beforeDir="false" afterPath="$PROJECT_DIR$/tsne.html" afterDir="false" />
-    </list>
+    <list default="true" id="b3689402-fbd4-4d05-8c49-0bb74b8ebe67" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,20 +123,20 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tsne3d.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="135">
-              <caret line="9" column="25" lean-forward="true" selection-start-line="9" selection-end-line="10" />
+            <state relative-caret-position="345">
+              <caret line="23" column="21" lean-forward="true" selection-start-line="9" selection-end-line="10" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/trimap3d.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="470">
-              <caret line="472" column="26" lean-forward="true" selection-start-line="472" selection-start-column="26" selection-end-line="472" selection-end-column="26" />
+            <state relative-caret-position="515">
+              <caret line="475" lean-forward="true" selection-start-line="475" selection-end-line="475" />
             </state>
           </provider>
         </entry>
@@ -232,7 +227,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="JavaScript Debug.trimap3d.html">
+  <component name="RunManager" selected="JavaScript Debug.tsne3d.html">
     <configuration name="index.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/index.html">
       <method v="2" />
     </configuration>
@@ -242,26 +237,26 @@
     <configuration name="trimap3d.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/trimap3d.html">
       <method v="2" />
     </configuration>
-    <configuration name="trimap.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/trimap.html">
+    <configuration name="tsne3d.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/tsne3d.html">
       <method v="2" />
     </configuration>
     <configuration name="tsne.html" type="JavascriptDebugType" factoryName="JavaScript Debug" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/embedding-projector/tsne.html">
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="JavaScript Debug.trimap.html" />
       <item itemvalue="JavaScript Debug.tsne.html" />
       <item itemvalue="JavaScript Debug.index.html" />
       <item itemvalue="JavaScript Debug.test.html" />
       <item itemvalue="JavaScript Debug.trimap3d.html" />
+      <item itemvalue="JavaScript Debug.tsne3d.html" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JavaScript Debug.tsne3d.html" />
         <item itemvalue="JavaScript Debug.trimap3d.html" />
         <item itemvalue="JavaScript Debug.index.html" />
         <item itemvalue="JavaScript Debug.tsne.html" />
         <item itemvalue="JavaScript Debug.test.html" />
-        <item itemvalue="JavaScript Debug.trimap.html" />
       </list>
     </recent_temporary>
   </component>
@@ -364,17 +359,17 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tsne3d.html">
+    <entry file="file://$PROJECT_DIR$/trimap3d.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="9" column="25" lean-forward="true" selection-start-line="9" selection-end-line="10" />
+        <state relative-caret-position="515">
+          <caret line="475" lean-forward="true" selection-start-line="475" selection-end-line="475" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/trimap3d.html">
+    <entry file="file://$PROJECT_DIR$/tsne3d.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="470">
-          <caret line="472" column="26" lean-forward="true" selection-start-line="472" selection-start-column="26" selection-end-line="472" selection-end-column="26" />
+        <state relative-caret-position="345">
+          <caret line="23" column="21" lean-forward="true" selection-start-line="9" selection-end-line="10" />
         </state>
       </provider>
     </entry>
