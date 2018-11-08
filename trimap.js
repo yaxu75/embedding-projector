@@ -16,9 +16,48 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
     }
   }
 
+// return 0 mean unit standard deviation random number
+  var return_v = false;
+  var v_val = 0.0;
+  var gaussRandom = function() {
+    if(return_v) {
+      return_v = false;
+      return v_val;
+    }
+    var u = 2*Math.random()-1;
+    var v = 2*Math.random()-1;
+    var r = u*u + v*v;
+    if(r == 0 || r > 1) return gaussRandom();
+    var c = Math.sqrt(-2*Math.log(r)/r);
+    v_val = v*c; // cache this for next function call for efficiency
+    return_v = true;
+    return u*c;
+  }
+
+  // return random normal number
+  var randn = function(mu, std){ return mu+gaussRandom()*std; }
+
+
+  Array.prototype.reshape = function(rows, cols) {
+  var copy = this.slice(0); // Copy all elements.
+  this.length = 0; // Clear out existing array.
+
+  for (var r = 0; r < rows; r++) {
+    var row = [];
+    for (var c = 0; c < cols; c++) {
+      var i = r * cols + c;
+      if (i < copy.length) {
+        row.push(copy[i]);
+      }
+    }
+    this.push(row);
+  }
+};
+
+
+
   var bincount = function(X,Y){
-      var JX = nj.array(X)
-      var n = JX.max()
+      var n = Math.max(...X)
       var t = X.length
       var Z = Array(n+1).fill(0)
       for(var i = 0; i < t; i++){
@@ -29,12 +68,15 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
   }
 
   var trimap_grad = function(Y, triplets, weights){
-      var lY = Y.tolist()
+      var lY = Y
+      console.log(lY)
       var nlength = lY.length
       var dim = lY[0].length
       var m = triplets.length
         //grad are nj array
-      var grad = nj.zeros([nlength,dim]).tolist()
+      var grad = Array(nlength*dim).fill(0);
+
+
         // triplets is a m*3 js array, y_i,j,k are m*2 js array, Y is a n*2  nj array
       var y_i = []
       var y_j = []
@@ -60,9 +102,7 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
 
 
       var y_ij = y_i.subtract(y_j)
-      console.log(y_ij.tolist())
       var y_ik = y_i.subtract(y_k)
-      console.log(y_ik.tolist())
 
       var my_ij = y_ij.multiply(y_ij)
       my_ij = my_ij.tolist()
@@ -173,12 +213,15 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
 
 
           for(var j = 0; j < nlength; j++){
-              grad[j][i] += bin1[j]
-              grad[j][i] += bin2[j]
-              grad[j][i] += bin3[j]
+              grad[j*dim+i] += bin1[j]
+              grad[j*dim+i] += bin2[j]
+              grad[j*dim+i] += bin3[j]
           }
 
       }
+
+      grad.reshape(nlength,dim);
+
     return{"cost": loss,
           "gradiant": grad,
           "numviol": num_viol
@@ -210,7 +253,14 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
 
         this.n = n
         this.dim = dim
-        this.Y = nj.random([this.n, this.nd]).multiply(0.0001)
+
+        this.Y = []
+        for(var Yn=0;Yn < this.n;Yn++){
+            for(var Ynd=0;Ynd < this.nd;Ynd++){
+                this.Y.push(randn(0.0, 1e-4))
+            }
+        }
+        this.Y.reshape(this.n,this.nd)
         this.cost = Infinity
         this.best_cost = Infinity
         this.best_Y = this.Y
@@ -227,7 +277,7 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
 
     // return pointer to current solution
     getSolution: function() {
-      return {"Y": this.Y.tolist(),
+      return {"Y": this.Y,
           "loss": this.cost
 
     };
@@ -249,9 +299,14 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
             this.best_Y = this.Y
         }
 
-        var njgrad = nj.array(this.grad)
-        njgrad = njgrad.multiply(this.eta / this.num_triplets * this.n)
-        this.Y = this.Y.subtract(njgrad)
+        var njgrad = this.grad
+        for(var Yn=0;Yn < this.n;Yn++){
+            for(var Ynd=0;Ynd < this.nd;Ynd++){
+                njgrad[Yn][Ynd] = njgrad[Yn][Ynd] * this.eta / this.num_triplets * this.n
+                this.Y[Yn][Ynd] = this.Y[Yn][Ynd] - njgrad[Yn][Ynd]
+            }
+        }
+
 
         if(old_cost > this.cost + this.tol){
             this.eta = this.eta * 1.01
