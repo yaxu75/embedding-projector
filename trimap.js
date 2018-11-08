@@ -16,6 +16,8 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
     }
   }
 
+
+
 // return 0 mean unit standard deviation random number
   var return_v = false;
   var v_val = 0.0;
@@ -69,7 +71,6 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
 
   var trimap_grad = function(Y, triplets, weights){
       var lY = Y
-      console.log(lY)
       var nlength = lY.length
       var dim = lY[0].length
       var m = triplets.length
@@ -77,7 +78,7 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
       var grad = Array(nlength*dim).fill(0);
 
 
-        // triplets is a m*3 js array, y_i,j,k are m*2 js array, Y is a n*2  nj array
+        // triplets is a m*3 js array, y_i,j,k are m*dim js array, Y is a n*dim  nj array
       var y_i = []
       var y_j = []
       var y_k = []
@@ -95,7 +96,9 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
           var z2 = lY[z1]
           y_k.push(z2)
       }
-        //y_i,j,k are now m*2 nj array
+        //y_i,j,k are now m*dim nj array
+
+
       y_i = nj.array(y_i)
       y_j = nj.array(y_j)
       y_k = nj.array(y_k)
@@ -104,13 +107,27 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
       var y_ij = y_i.subtract(y_j)
       var y_ik = y_i.subtract(y_k)
 
-      var my_ij = y_ij.multiply(y_ij)
-      my_ij = my_ij.tolist()
+      var my_ij = y_ij.multiply(y_ij).tolist()
 
 
 
-      var y_ijx = my_ij.length
-      var y_ijy = my_ij[0].length
+      var y_ijx = m
+      var y_ijy = dim
+      var d_ij = []
+
+      for(var i = 0; i < y_ijx; ++i){
+          var k = 0
+          for(var j = 0; j<y_ijy; ++j){
+              k = k + my_ij[i][j]
+          }
+          k = k+1
+          d_ij.push(k)
+      }
+
+//dij dik are both m*1 js array
+      var my_ik = y_ik.multiply(y_ik).tolist()
+      var y_ijx = m
+      var y_ijy = dim
       var d_ij = []
 
       for(var i = 0; i < y_ijx; ++i){
@@ -122,7 +139,6 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
           d_ij.push(k)
       }
         //dij dik are both m*1 js array
-      var my_ik = y_ik.multiply(y_ik).tolist()
       var y_ikx = my_ik.length
       var y_iky = my_ik[0].length
       var d_ik = []
@@ -159,7 +175,7 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
           loss = loss + k
       }
         //gs
-      y_ij = y_ij.tolist()
+            y_ij = y_ij.tolist()
       var ylength = y_ij.length
       for(var i = 0; i < ylength; i++){
           var n = 2 * (d_ik[i] / denom[i] * weights[i])
@@ -168,7 +184,7 @@ var trimapjs = trimapjs || { REVISION: 'ALPHA' };
           }
       }
         //go
-      y_ik = y_ik.tolist()
+            y_ik = y_ik.tolist()
       for(var i = 0; i < ylength; i++){
 
           var n = 2 * (d_ij[i] / denom[i] * weights[i])
