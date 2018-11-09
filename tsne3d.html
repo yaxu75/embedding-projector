@@ -60,6 +60,15 @@ var color = d3.scaleOrdinal(d3.schemeCategory10);
 // Generates a tooltip for a SVG circle element based on its ID
 
 
+ function hex_to_RGB(hex) {
+    var m = hex.match(/^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+    return {
+        r: (parseInt(m[1], 16)+1)/256,
+        g: (parseInt(m[2], 16)+1)/256,
+        b: (parseInt(m[3], 16)+1)/256
+    };
+}
+
 function drawGraph(graph) {
     svg1 = d3.select("#force").append("svg")
         .attr("width", width)
@@ -91,7 +100,6 @@ function drawGraph(graph) {
 
     initializePlot();
 
-    updateData();
 
 
 
@@ -153,24 +161,31 @@ function drawGraph(graph) {
        // Does not work on Chrome; use transform instead
        //.attr("radius", sphereRadius)
 
-    datapoints.selectAll("shape appearance material")
-        .attr("diffuseColor", 'steelblue' )
+      var idlabel = -1
 
     datapoints
         .attr("translation", function(row) {
           return x(row[axisKeys[0]]) + " " + y(row[axisKeys[1]]) + " " + z(row[axisKeys[2]])})
 
+          scene.selectAll(".datapoint").selectAll("shape appearance material")
+
+        .attr("diffuseColor", function(){   idlabel = idlabel + 1
+            return rbgcolor[idlabel].r + " " + rbgcolor[idlabel].b + " " + rbgcolor[idlabel].g})
+
+
   }
 
   function initializeDataGrid() {
     var rows = [];
+    var rbgcolor = [];
     // Follow the convention where y(x,z) is elevation.
     for (var i = 0; i<200; i++) {
 
         rows.push({x: 0, y: 0, z: 0});
 
     }
-    return rows;
+    return {"rows":rows,
+    "color":rbgcolor};
   }
 
   function updateData() {
@@ -264,7 +279,7 @@ function drawGraph(graph) {
   function drawAxis( axisIndex, key, duration ) {
 
     var scale = d3.scaleLinear()
-      .domain( [-5,5] ) // demo data range
+      .domain( [0,5] ) // demo data range
       .range( axisRange )
 
     scales[axisIndex] = scale;
@@ -296,6 +311,7 @@ function drawNodes(nodes) {
     // used to assign nodes color by group
     var color = d3.scaleOrdinal(d3.schemeCategory10)
                 .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
     // https://github.com/mbostock/d3/wiki/Force-Layout#wiki-nodes
     d3.select("#plot1").selectAll(".node")
         .data(nodes)
@@ -307,8 +323,12 @@ function drawNodes(nodes) {
         .attr("cx", function(d, i) { return d.x; })
         .attr("cy", function(d, i) { return d.y; })
         .attr("r",  function(d, i) { return 6; })
-        .attr("fill", function(d) { return color(d.label); })
+        .attr("fill", function(d) {
+            rbgcolor.push(hex_to_RGB(color(d.label)))
+            return color(d.label); })
 
+
+    updateData();
 
     // https://github.com/mbostock/d3/wiki/Force-Layout#wiki-nodes
 
@@ -386,8 +406,8 @@ function tsneSimulation(nodes,dists) {
 
       for (i = 0; i < n; ++i) {
           node = nodes[i];
-          dx = Y[i][0] * 8;
-          dy = Y[i][1] * 8;
+          dx = Y[i][0] * 5;
+          dy = Y[i][1] * 5;
           node.x = width / 2+ dx;
           node.y = height / 2+ dy;
     }
@@ -448,19 +468,20 @@ d3.select('#force').style('width', "400px").style('height', "400px")
 
       var x3d = d3.select('#divPlot')
     .append("x3d")
-      .style( "width", 400+"px" )
-      .style( "height", 400+"px" )
+      .style( "width", 600+"px" )
+      .style( "height", 600+"px" )
       .style( "border", "none" )
 
   var scene = x3d.append("scene")
 
   scene.append("orthoviewpoint")
-     .attr( "centerOfRotation", [5, 5, 5])
+     .attr( "centerOfRotation", [0, 0, 0])
      .attr( "fieldOfView", [-5, -5, 15, 15])
      .attr( "orientation", [-0.5, 1, 0.2, 1.12*Math.PI/4])
-     .attr( "position", [8, 4, 15])
+     .attr( "position", [5, -1, 5])
 
-  var rows = initializeDataGrid();
+  var rows = initializeDataGrid().rows;
+  var rbgcolor = initializeDataGrid().color;
 
   var axisRange = [0, 10];
   var scales = [];
