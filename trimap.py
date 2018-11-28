@@ -18,115 +18,231 @@ import sys
 from sklearn.neighbors import NearestNeighbors as knn
 from sklearn.decomposition import TruncatedSVD
 import numpy as np
-import json
+from annoy import AnnoyIndex
 
-
-def generate_triplets(X, kin=50, kout=10, kr=5, weight_adj=False, random_triplets=True):
-    num_extra = np.maximum(kin, 30)  # look up more neighbors
-    n = X.shape[0]
-    nbrs = knn(n_neighbors=num_extra + 1, algorithm='auto').fit(X)
-    distances, indices = nbrs.kneighbors(X)
-    #    sig = distances[:,10]
-    sig = np.maximum(np.mean(distances[:, 10:20], axis=1), 1e-20)  # scale parameter
-    P = np.exp(-distances ** 2 / np.reshape(sig[indices.flatten()], [n, num_extra + 1]) / sig[:, np.newaxis])
-    sort_indices = np.argsort(-P, axis=1)  # actual neighbors
-
-    triplets = np.zeros([n * kin * kout, 3])
-    weights = np.zeros(n * kin * kout)
-
-    cnt = 0
-    for i in xrange(n):
-        for j in xrange(kin):
-            sim = indices[i, sort_indices[i, j + 1]]
-            p_sim = P[i, sort_indices[i, j + 1]]
-            rem = indices[i, sort_indices[i, :j + 2]].tolist()
-            l = 0
-            while (l < kout):
-                out = np.random.choice(n)
-                if out not in rem:
-                    triplets[cnt, :] = [i, sim, out]
-                    p_out = np.exp(-np.sum((X[i, :] - X[out, :]) ** 2) / (sig[i] * sig[out]))
-                    if p_out < 1e-20:
-                        p_out = 1e-20
-                    weights[cnt] = p_sim / p_out
-                    rem.append(out)
-                    l += 1
-                    cnt += 1
-        if ((i + 1) % 10000) == 0:
-            print 'Genareted triplets %d out of %d' % (i + 1, n)
-    if random_triplets:
-        kr = 5
-        triplets_rand = np.zeros([n * kr, 3])
-        weights_rand = np.zeros(n * kr)
-        for i in xrange(n):
-            cnt = 0
-            while cnt < kr:
-                sim = np.random.choice(n)
-                if sim == i:
-                    continue
-                out = np.random.choice(n)
-                if out == i or out == sim:
-                    continue
-                p_sim = np.exp(-np.sum((X[i, :] - X[sim, :]) ** 2) / (sig[i] * sig[sim]))
-                if p_sim < 1e-20:
-                    p_sim = 1e-20
-                p_out = np.exp(-np.sum((X[i, :] - X[out, :]) ** 2) / (sig[i] * sig[out]))
-                if p_out < 1e-20:
-                    p_out = 1e-20
-                if p_sim < p_out:
-                    sim, out = out, sim
-                    p_sim, p_out = p_out, p_sim
-                triplets_rand[i * kr + cnt, :] = [i, sim, out]
-                weights_rand[i * kr + cnt] = p_sim / p_out
-                cnt += 1
-            if ((i + 1) % 10000) == 0:
-                print 'Genareted random triplets %d out of %d' % (i + 1, n)
-        triplets = np.vstack((triplets, triplets_rand))
-        weights = np.hstack((weights, weights_rand))
-    triplets = triplets[~np.isnan(weights), :]
-    weights = weights[~np.isnan(weights)]
+def generate_triplets(X, n_inlier, n_outlier, n_random, fast_trimap = True, weight_adj = False, verbose = True):
+    n, dim = X.shape
+    if dim > 100:
+        X = TruncatedSVD(n_components=100, random_state=0).fit_transform(X)
+        dim = 100
+    exact = n <= 10000
+    n_extra = min(max(n_inlier, 200),n)
+    if exact: # do exact knn search
+        knn_tree = knn(n_neighbors= n_extra, algorithm='auto').fit(X)
+        distances, nbrs = knn_tree.kneighbors(X)
+    elif fast_trimap: # use annoy
+        tree = AnnoyIndex(dim)
+        for i in range(n):
+            tree.add_item(i, X[i,:])
+        tree.build(50)
+        nbrs = np.empty((n,n_extra), dtype=np.int64)
+        distances = np.empty((n,n_extra), dtype=np.float64)
+        dij = np.empty(n_extra, dtype=np.float64)
+        for i in range(n):
+            nbrs[i,:] = tree.get_nns_by_item(i, n_extra)
+            for j in range(n_extra):
+                dij[j] = euclid_dist(X[i,:], X[nbrs[i,j],:])
+            sort_indices = np.argsort(dij)
+            nbrs[i,:] = nbrs[i,sort_indices]
+            # for j in range(n_extra):
+            #     distances[i,j] = tree.get_distance(i, nbrs[i,j])
+            distances[i,:] = dij[sort_indices]
+    else:
+        n_bf = 10
+        n_extra += n_bf
+        knn_tree = knn(n_neighbors= n_bf, algorithm='auto').fit(X)
+        _, nbrs_bf = knn_tree.kneighbors(X)
+        nbrs = np.empty((n,n_extra), dtype=np.int64)
+        nbrs[:,:n_bf] = nbrs_bf
+        tree = AnnoyIndex(dim)
+        for i in range(n):
+            tree.add_item(i, X[i,:])
+        tree.build(60)
+        distances = np.empty((n,n_extra), dtype=np.float64)
+        dij = np.empty(n_extra, dtype=np.float64)
+        for i in range(n):
+            nbrs[i,n_bf:] = tree.get_nns_by_item(i, n_extra-n_bf)
+            unique_nn = np.unique(nbrs[i,:])
+            n_unique = len(unique_nn)
+            nbrs[i,:n_unique] = unique_nn
+            for j in range(n_unique):
+                dij[j] = euclid_dist(X[i,:], X[nbrs[i,j],:])
+            sort_indices = np.argsort(dij[:n_unique])
+            nbrs[i,:n_unique] = nbrs[i,sort_indices]
+            distances[i,:n_unique] = dij[sort_indices]
+    if verbose:
+        print("found nearest neighbors")
+    sig = np.maximum(np.mean(distances[:, 10:20], axis=1), 1e-20) # scale parameter
+    P = find_p(distances, sig, nbrs)
+    triplets = sample_knn_triplets(P, nbrs, n_inlier, n_outlier)
+    n_triplets = triplets.shape[0]
+    outlier_dist = np.empty(n_triplets, dtype=np.float64)
+    if exact or  not fast_trimap:
+        for t in range(n_triplets):
+            outlier_dist[t] = np.sqrt(np.sum((X[triplets[t,0],:] - X[triplets[t,2],:])**2))
+    else:
+        for t in range(n_triplets):
+            outlier_dist[t] = tree.get_distance(triplets[t,0], triplets[t,2])
+    weights = find_weights(triplets, P, nbrs, outlier_dist, sig)
+    if n_random > 0:
+        rand_triplets = sample_random_triplets(X, n_random, sig)
+        rand_weights = rand_triplets[:,-1]
+        rand_triplets = rand_triplets[:,:-1].astype(np.int64)
+        triplets = np.vstack((triplets, rand_triplets))
+        weights = np.hstack((weights, rand_weights))
     weights /= np.max(weights)
     weights += 0.0001
     if weight_adj:
         weights = np.log(1 + 50 * weights)
         weights /= np.max(weights)
+    return (triplets, weights)
 
 
+def euclid_dist(x1, x2):
+    """
+    Fast Euclidean distance calculation between two vectors.
+    """
+    result = 0.0
+    for i in range(x1.shape[0]):
+        result += (x1[i]-x2[i])**2
+    return np.sqrt(result)
+
+def find_p(distances, sig, nbrs):
+    """
+    Calculates the similarity matrix P
+    Input
+    ------
+    distances: Matrix of pairwise distances
+    sig: Scaling factor for the distances
+    nbrs: Nearest neighbors
+    Output
+    ------
+    P: Pairwise similarity matrix
+    """
+    n, n_neighbors = distances.shape
+    P = np.zeros((n,n_neighbors), dtype=np.float64)
+    for i in range(n):
+        for j in range(n_neighbors):
+            P[i,j] = np.exp(-distances[i,j]**2/sig[i]/sig[nbrs[i,j]])
+    return P
+
+def sample_random_triplets(X, n_random, sig):
+    """
+    Sample uniformly random triplets
+    Input
+    ------
+    X: Instance matrix
+    n_random: Number of random triplets per point
+    sig: Scaling factor for the distances
+    Output
+    ------
+    rand_triplets: Sampled triplets
+    """
+    n = X.shape[0]
+    rand_triplets = np.empty((n * n_random, 4), dtype=np.float64)
+    for i in range(n):
+        for j in range(n_random):
+            sim = np.random.choice(n)
+            while sim == i:
+                sim = np.random.choice(n)
+            out = np.random.choice(n)
+            while out == i or out == sim:
+                out = np.random.choice(n)
+            p_sim = np.exp(-euclid_dist(X[i,:],X[sim,:])**2/(sig[i] * sig[sim]))
+            if p_sim < 1e-20:
+                p_sim = 1e-20
+            p_out = np.exp(-euclid_dist(X[i,:],X[out,:])**2/(sig[i] * sig[out]))
+            if p_out < 1e-20:
+                p_out = 1e-20
+            if p_sim < p_out:
+                sim, out = out, sim
+                p_sim, p_out = p_out, p_sim
+            rand_triplets[i * n_random + j,0] = i
+            rand_triplets[i * n_random + j,1] = sim
+            rand_triplets[i * n_random + j,2] = out
+            rand_triplets[i * n_random + j,3] = p_sim/p_out
+    return rand_triplets
+
+def sample_knn_triplets(P, nbrs, n_inlier, n_outlier):
+    """
+    Sample nearest neighbors triplets based on the similarity values given in P
+    Input
+    ------
+    nbrs: Nearest neighbors indices for each point. The similarity values
+        are given in matrix P. Row i corresponds to the i-th point.
+    P: Matrix of pairwise similarities between each point and its neighbors
+        given in matrix nbrs
+    n_inlier: Number of inlier points
+    n_outlier: Number of outlier points
+    Output
+    ------
+    triplets: Sampled triplets
+    """
+    n, n_neighbors = nbrs.shape
+    triplets = np.empty((n * n_inlier * n_outlier, 3), dtype=np.int64)
+    for i in range(n):
+        sort_indices = np.argsort(-P[i,:])
+        for j in range(n_inlier):
+            sim = nbrs[i,sort_indices[j+1]]
+            samples = rejection_sample(n_outlier, n, sort_indices[:j+2])
+            for k in range(n_outlier):
+                index = i * n_inlier * n_outlier + j * n_outlier + k
+                out = samples[k]
+                triplets[index,0] = i
+                triplets[index,1] = sim
+                triplets[index,2] = out
+    return triplets
+
+def rejection_sample(n_samples, max_int, rejects):
+    """
+    Samples "n_samples" integers from a given interval [0,max_int] while
+    rejecting the values that are in the "rejects".
+    """
+    result = np.empty(n_samples, dtype=np.int64)
+    for i in range(n_samples):
+        reject_sample = True
+        while reject_sample:
+            j = np.random.randint(max_int)
+            for k in range(i):
+                if j == result[k]:
+                    break
+            for k in range(rejects.shape[0]):
+            	if j == rejects[k]:
+            		break
+            else:
+                reject_sample = False
+        result[i] = j
+    return result
+
+def find_weights(triplets, P, nbrs, distances, sig):
+    """
+    Calculates the weights for the sampled nearest neighbors triplets
+    Input
+    ------
+    triplets: Sampled triplets
+    P: Pairwise similarity matrix
+    nbrs: Nearest neighbors
+    distances: Matrix of pairwise distances
+    sig: Scaling factor for the distances
+    Output
+    ------
+    weights: Weights for the triplets
+    """
+    n_triplets = triplets.shape[0]
+    weights = np.empty(n_triplets, dtype=np.float64)
+    for t in range(n_triplets):
+        i = triplets[t,0]
+        sim = 0
+        while(nbrs[i,sim] != triplets[t,1]):
+            sim += 1
+        p_sim = P[i,sim]
+        p_out = np.exp(-distances[t]**2/(sig[i] * sig[triplets[t,2]]))
+        if p_out < 1e-20:
+            p_out = 1e-20
+        weights[t] = p_sim/p_out
+    return weights
 
 
-    return (triplets.astype(int), weights.flatten())
-
-
-def trimap_grad(Y, triplets, weights):
-    n, dim = Y.shape
-
-    grad = np.zeros([n, dim])
-    y_ij = Y[triplets[:, 0], :] - Y[triplets[:, 1], :]
-
-
-
-    y_ik = Y[triplets[:, 0], :] - Y[triplets[:, 2], :]
-    d_ij = 1 + np.sum(y_ij ** 2, axis=-1)
-
-    d_ik = 1 + np.sum(y_ik ** 2, axis=-1)
-    num_viol = np.sum(d_ij > d_ik)
-    denom = (d_ij + d_ik) ** 2
-    loss = weights.dot(d_ij / (d_ij + d_ik))
-
-
-
-    gs = 2 * y_ij * (d_ik / denom * weights)[:, np.newaxis]
-
-
-    go = 2 * y_ik * (d_ij / denom * weights)[:, np.newaxis]
-
-    for i in range(dim):
-        grad[:, i] += np.bincount(triplets[:, 0], weights=gs[:, i] - go[:, i])
-
-        grad[:, i] += np.bincount(triplets[:, 1], weights=-gs[:, i])
-
-        grad[:, i] += np.bincount(triplets[:, 2], weights=go[:, i])
-    return (loss, grad, num_viol)
 
 
 def trimap(X, num_dims=2, num_neighbs=50, num_out=10, num_rand=5, eta=2000.0, Yinit=[]):
@@ -157,49 +273,11 @@ def trimap(X, num_dims=2, num_neighbs=50, num_out=10, num_rand=5, eta=2000.0, Yi
     #    eta = 500.0 # learning rate
 
     triplets, weights = generate_triplets(X, num_neighbs, num_out, num_rand)
-    num_triplets = float(triplets.shape[0])
-
-    for itr in range(num_iter):
-        old_C = C
-        C, grad, num_viol = trimap_grad(Y, triplets, weights)
-
-        # maintain the best answer
-        if C < best_C:
-            best_C = C
-            best_Y = Y
-
-        # update Y
-        Y -= (eta / num_triplets * n) * grad;
-
-        # update the learning rate
-        if old_C > C + tol:
-            eta = eta * 1.01
-        else:
-            eta = eta * 0.5
-
-        if (itr + 1) % 10 == 0:
-            print 'Iteration: %4d, Loss: %3.3f, Violated triplets: %0.4f' % (itr + 1, C, float(num_viol) / num_triplets)
-    return best_Y
 
 
-def main():
-    input = "train1.txt"
-    X = np.loadtxt(input)
-    if len(sys.argv) > 2:
-        init = sys.argv[2]
-        Yinit = np.loadtxt(init)
-        Y = trimap(X, 2, 50, 10, 5, 1000, Yinit)
-    else:
-        Y = trimap(X, 2, 50, 10, 5, 1000)
-    t = "trimaptrained1.txt"
-    np.savetxt(t,Y)
-    x,y = Y.shape
-    print(type(X))
-    print(type(Y))
-    print(x,y)
-    return Y
+    return (triplets, weights)
 
 
 
-if __name__ == '__main__':
-    main()
+
+

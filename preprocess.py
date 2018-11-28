@@ -19,7 +19,7 @@ labels = mnist.train_labels()
 a=np.array(img_re[:200], dtype=np.float64)
 
 
-best_Y, triplets, weights = trimap(a, 2, 60, 10, 5, 1000)
+triplets, weights = trimap(a, 2, 60, 10, 5, 1000)
 
 for n in range(0,200):
     nodes_list.append({"id": n, "label": labels[n], "img": target_path + str(n) + '.png', "pixel": list(img_re[n])})
